@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guitar Mode Tracker</title>
+    <style>
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            text-align: center; 
+            background: #121212; 
+            color: #ffffff; 
+            padding: 2rem 1rem; 
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container { 
+            background: #1e1e1e; 
+            padding: 2rem; 
+            border-radius: 16px; 
+            width: 100%;
+            max-width: 600px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+        }
+        h1 { color: #4ade80; margin-top: 0; font-size: 2.5rem; }
+        .round-title { color: #a1a1aa; font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .exercise { font-size: 3rem; font-weight: bold; margin: 2rem 0; color: #60a5fa; line-height: 1.2; }
+        .shift-text { font-size: 1.5rem; color: #f87171; display: block; margin-top: 1rem; }
+        .progress { color: #71717a; margin-bottom: 2rem; font-size: 1.1rem; }
+        button { 
+            background: #4ade80; 
+            color: #121212; 
+            border: none; 
+            padding: 1.2rem 2.5rem; 
+            font-size: 1.5rem; 
+            font-weight: bold; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: transform 0.1s, background 0.2s; 
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        button:active { transform: scale(0.97); }
+        button:hover { background: #22c55e; }
+        button.secondary { background: #3f3f46; color: #ffffff; font-size: 1.2rem; padding: 1rem 2rem; }
+        button.secondary:hover { background: #52525b; }
+        #app-area { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Start Screen -->
+        <div id="start-area">
+            <h1>Mode Practice</h1>
+            <p style="color: #a1a1aa; margin-bottom: 2rem; font-size: 1.1rem;">
+                Round 1: 1 Position (5 exercises)<br>
+                Round 2: 2 Octaves / 1 Shift (30 exercises)<br>
+                Round 3: 3 Positions / 2 Shifts (75 exercises)
+            </p>
+            <button onclick="startNewKey()">Generate Random Key</button>
+        </div>
+
+        <!-- Practice Screen -->
+        <div id="app-area">
+            <h1 id="keyDisplay">Key of C</h1>
+            <div id="roundDisplay" class="round-title">Round 1</div>
+            <div id="exerciseDisplay" class="exercise">Ready</div>
+            <div id="progressDisplay" class="progress">0 / 0</div>
+            
+            <button id="nextBtn" onclick="nextExercise()">Next Shape</button>
+            <button class="secondary" onclick="startNewKey()">Start Over (New Key)</button>
+        </div>
+    </div>
+
+    <script>
+        const notes = ['A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#'];
+        // Updated to the 5 requested modes
+        const modes = ['Ionian', 'Dorian', 'Phrygian', 'Mixolydian', 'Aeolian'];
+        const strings = [1, 2, 3, 4, 5, 6];
+
+        let currentKey = '';
+        let queue = [];
+        let currentIndex = 0;
+        let currentRound = 1;
+
+        // Fisher-Yates Shuffle
+        function shuffle(array) {
+            let arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Get all unique combinations of 2 strings
+        function getPairs(arr) {
+            let pairs = [];
+            for(let i = 0; i < arr.length; i++) {
+                for(let j = i + 1; j < arr.length; j++) {
+                    pairs.push([arr[i], arr[j]]);
+                }
+            }
+            return pairs;
+        }
+
+        function startNewKey() {
+            document.getElementById('start-area').style.display = 'none';
+            document.getElementById('app-area').style.display = 'block';
+            document.getElementById('nextBtn').style.display = 'block';
+
+            currentKey = notes[Math.floor(Math.random() * notes.length)];
+            document.getElementById('keyDisplay').innerText = `Key of ${currentKey}`;
+            
+            generateRound1();
+            updateUI();
+        }
+
+        function generateRound1() {
+            currentRound = 1;
+            let exercises = modes.map(mode => ({ 
+                mode, 
+                text: mode 
+            }));
+            queue = shuffle(exercises);
+            currentIndex = 0;
+        }
+
+        function generateRound2() {
+            currentRound = 2;
+            let exercises = [];
+            modes.forEach(mode => {
+                strings.forEach(string => {
+                    exercises.push({ 
+                        mode, 
+                        text: `${mode}<br><span class="shift-text">Shift on String ${string}</span>` 
+                    });
+                });
+            });
+            queue = shuffle(exercises);
+            currentIndex = 0;
+        }
+
+        function generateRound3() {
+            currentRound = 3;
+            let exercises = [];
+            let pairs = getPairs(strings);
+            modes.forEach(mode => {
+                pairs.forEach(pair => {
+                    exercises.push({ 
+                        mode, 
+                        text: `${mode}<br><span class="shift-text">Shift on Strings ${pair[0]} & ${pair[1]}</span>` 
+                    });
+                });
+            });
+            queue = shuffle(exercises);
+            currentIndex = 0;
+        }
+
+        function nextExercise() {
+            currentIndex++;
+            if (currentIndex >= queue.length) {
+                if (currentRound === 1) {
+                    generateRound2();
+                } else if (currentRound === 2) {
+                    generateRound3();
+                } else {
+                    document.getElementById('exerciseDisplay').innerHTML = "All rounds complete! 🎉<br><span style='font-size: 1rem; color: #a1a1aa;'>You survived 110 variations!</span>";
+                    document.getElementById('nextBtn').style.display = 'none';
+                    document.getElementById('progressDisplay').innerText = "Session Done";
+                    return;
+                }
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            const roundNames = [
+                "Round 1: 1 Position", 
+                "Round 2: 2 Octaves (1 Shift)", 
+                "Round 3: 3 Positions (2 Shifts)"
+            ];
+            
+            document.getElementById('roundDisplay').innerText = roundNames[currentRound - 1];
+            document.getElementById('exerciseDisplay').innerHTML = queue[currentIndex].text;
+            document.getElementById('progressDisplay').innerText = `Exercise ${currentIndex + 1} of ${queue.length}`;
+        }
+    </script>
+</body>
+</html>
