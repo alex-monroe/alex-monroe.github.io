@@ -47,6 +47,22 @@
         button.secondary { background: #3f3f46; color: #ffffff; font-size: 1.2rem; padding: 1rem 2rem; }
         button.secondary:hover { background: #52525b; }
         #app-area { display: none; }
+        .scale-select { text-align: left; margin: 1.5rem 0 2rem; }
+        .scale-select-title { color: #a1a1aa; font-size: 1rem; font-weight: bold; margin-bottom: 0.75rem; text-align: center; }
+        .scale-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: #2a2a2a;
+            padding: 0.9rem 1.1rem;
+            border-radius: 10px;
+            margin-bottom: 0.6rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        .scale-option:hover { background: #333333; }
+        .scale-option input { width: 1.3rem; height: 1.3rem; accent-color: #4ade80; cursor: pointer; }
+        .hint { color: #71717a; font-size: 0.9rem; margin-top: 0.5rem; }
     </style>
 </head>
 <body>
@@ -55,11 +71,15 @@
         <!-- Start Screen -->
         <div id="start-area">
             <h1>Mode Practice</h1>
-            <p style="color: #a1a1aa; margin-bottom: 2rem; font-size: 1.1rem;">
-                Round 1: 1 Position (5 exercises)<br>
-                Round 2: 2 Octaves / 1 Shift (30 exercises)<br>
-                Round 3: 3 Positions / 2 Shifts (75 exercises)
+            <p style="color: #a1a1aa; margin-bottom: 1rem; font-size: 1.1rem;">
+                Round 1: 1 Position<br>
+                Round 2: 2 Octaves / 1 Shift<br>
+                Round 3: 3 Positions / 2 Shifts
             </p>
+            <div class="scale-select">
+                <div class="scale-select-title">Scales to include</div>
+                <div id="scaleOptions"></div>
+            </div>
             <button onclick="startNewKey()">Generate Random Key</button>
         </div>
 
@@ -71,16 +91,39 @@
             <div id="progressDisplay" class="progress">0 / 0</div>
             
             <button id="nextBtn" onclick="nextExercise()">Next Shape</button>
+            <div class="hint">Press <strong>Space</strong> for the next card</div>
             <button class="secondary" onclick="startNewKey()">Start Over (New Key)</button>
         </div>
     </div>
 
     <script>
         const notes = ['A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#'];
-        // Updated to the 5 requested modes
-        const modes = ['Ionian', 'Dorian', 'Phrygian', 'Mixolydian', 'Aeolian'];
+        // All available scales/modes
+        const allScales = [
+            'Ionian', 'Dorian', 'Phrygian', 'Mixolydian', 'Aeolian',
+            'Minor Pentatonic', 'Major Pentatonic'
+        ];
+
         const strings = [1, 2, 3, 4, 5, 6];
 
+        // Build the scale selection checkboxes
+        function buildScaleOptions() {
+            const container = document.getElementById('scaleOptions');
+            container.innerHTML = allScales.map(scale => `
+                <label class="scale-option">
+                    <input type="checkbox" value="${scale}" checked>
+                    <span>${scale}</span>
+                </label>
+            `).join('');
+        }
+
+        function getSelectedScales() {
+            return Array.from(
+                document.querySelectorAll('#scaleOptions input:checked')
+            ).map(input => input.value);
+        }
+
+        let modes = [...allScales];
         let currentKey = '';
         let queue = [];
         let currentIndex = 0;
@@ -108,6 +151,13 @@
         }
 
         function startNewKey() {
+            const selected = getSelectedScales();
+            if (selected.length === 0) {
+                alert('Please select at least one scale to practice.');
+                return;
+            }
+            modes = selected;
+
             document.getElementById('start-area').style.display = 'none';
             document.getElementById('app-area').style.display = 'block';
             document.getElementById('nextBtn').style.display = 'block';
@@ -188,6 +238,20 @@
             document.getElementById('exerciseDisplay').innerHTML = queue[currentIndex].text;
             document.getElementById('progressDisplay').innerText = `Exercise ${currentIndex + 1} of ${queue.length}`;
         }
+
+        // Spacebar advances to the next card while practicing
+        document.addEventListener('keydown', (e) => {
+            if (e.code !== 'Space' && e.key !== ' ') return;
+            const appVisible = document.getElementById('app-area').style.display === 'block';
+            const nextVisible = document.getElementById('nextBtn').style.display !== 'none';
+            if (appVisible && nextVisible) {
+                e.preventDefault();
+                nextExercise();
+            }
+        });
+
+        // Populate scale selection on load
+        buildScaleOptions();
     </script>
 </body>
 </html>
